@@ -23,15 +23,14 @@ const char *frag_shader =
 "}\n";
 
 #define KEYQUEUE_SIZE 16
-
 unsigned short key_queue[KEYQUEUE_SIZE];
 int key_windex = 0;
 int key_rindex = 0;
 
-#define KEY_COUNT 26
+#define KEY_COUNT 30
 int bound_keys[KEY_COUNT] = {
-  KEY_ENTER, KEY_Y, KEY_ESCAPE, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN,
-  KEY_LEFT_CONTROL, KEY_RIGHT_CONTROL, KEY_SPACE, KEY_LEFT_SHIFT,
+  KEY_ENTER, KEY_Y, KEY_ESCAPE, KEY_LEFT, KEY_A, KEY_RIGHT, KEY_D, KEY_UP, 
+  KEY_W, KEY_DOWN, KEY_S, KEY_LEFT_CONTROL, KEY_RIGHT_CONTROL, KEY_SPACE, KEY_LEFT_SHIFT,
   KEY_RIGHT_SHIFT, KEY_LEFT_ALT, KEY_RIGHT_ALT, KEY_F2, KEY_F3, KEY_F4,
   KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_EQUAL, KEY_MINUS
 };
@@ -50,13 +49,21 @@ static unsigned char convert_to_doom_key(int key) {
         case KEY_LEFT:
           key = DKEY_LEFTARROW;
           break;
+        case KEY_A:
+          key = DKEY_STRAFE_L;
+          break;
         case KEY_RIGHT:
           key = DKEY_RIGHTARROW;
           break;
+        case KEY_D:
+          key = DKEY_STRAFE_R;
+          break;
         case KEY_UP:
+        case KEY_W:
           key = DKEY_UPARROW;
           break;
         case KEY_DOWN:
+        case KEY_S:
           key = DKEY_DOWNARROW;
           break;
         case KEY_LEFT_CONTROL:
@@ -115,9 +122,16 @@ static unsigned char convert_to_doom_key(int key) {
 }
 
 void update_key_queue() {
-    for (size_t i = 0; i < KEY_COUNT; i++) {
-      if (key_windex >= KEYQUEUE_SIZE) break;
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+          key_queue[key_windex++] = (1 << 8) | DKEY_FIRE;
+          key_windex %= KEYQUEUE_SIZE;
+    } else if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+          key_queue[key_windex++] = (0 << 8) | DKEY_FIRE;
+          key_windex %= KEYQUEUE_SIZE;
+    }
 
+    // standard keys
+    for (size_t i = 0; i < KEY_COUNT; i++) {
       int key = bound_keys[i];
       if (IsKeyPressed(key)) {
           key_queue[key_windex++] = (1 << 8) | convert_to_doom_key(key);
@@ -132,8 +146,9 @@ void update_key_queue() {
 void DG_Init() {
     InitWindow(DOOMGENERIC_RESX, DOOMGENERIC_RESY, "DOOM");
     SetExitKey(0);
-    frame = LoadRenderTexture(DOOMGENERIC_RESX, DOOMGENERIC_RESY).texture;
+    DisableCursor();
 
+    frame = LoadRenderTexture(DOOMGENERIC_RESX, DOOMGENERIC_RESY).texture;
     shader = LoadShaderFromMemory(NULL, frag_shader);
 }
 
