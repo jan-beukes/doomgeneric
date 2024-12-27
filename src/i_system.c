@@ -340,6 +340,7 @@ static int ZenityErrorBox(char *message)
                ZENITY_BINARY, escaped_message);
 
     result = system(errorboxpath);
+    exit(1);
 
     free(errorboxpath);
     free(escaped_message);
