@@ -1,5 +1,7 @@
 #include "doomkeys_rl.h"
 #include "m_argv.h"
+#include "d_event.h"
+#include "sounds.h"
 #include "doomgeneric.h"
 
 #include <stdio.h>
@@ -8,8 +10,13 @@
 #include <stdbool.h>
 #include <raylib.h>
 
+// Global state
 Texture frame;
 Shader shader;
+Music music[64] = {0};
+size_t current_song;
+
+#define DOOM_SENS 10
 
 const char *frag_shader = 
 "#version 330\n"
@@ -145,13 +152,36 @@ void update_key_queue() {
 
 void DG_Init() {
     InitWindow(DOOMGENERIC_RESX, DOOMGENERIC_RESY, "DOOM");
+    InitAudioDevice();
+    SetTargetFPS(120);
     SetExitKey(0);
     DisableCursor();
+    
+    music[mus_introa] = LoadMusicStream("res/intro.mp3");
+    printf("Intro: %d\n", mus_intro);
+    music[mus_inter] = LoadMusicStream("res/inter.mp3");
+    music[mus_e1m1] = LoadMusicStream("res/e1m1.mp3");
+    music[mus_e1m2] = LoadMusicStream("res/e1m2.mp3");
+
+    SetMasterVolume(0.5);
 
     frame = LoadRenderTexture(DOOMGENERIC_RESX, DOOMGENERIC_RESY).texture;
     shader = LoadShaderFromMemory(NULL, frag_shader);
 }
 
+void DG_StartMusic(int musicnum) {
+    PlayMusicStream(music[musicnum]);
+    printf("SONG: %d\n", musicnum);
+    current_song = musicnum;
+}
+
+void DG_StopMusic() {
+    StopMusicStream(music[current_song]);
+}
+
+void DG_UpdateMusic() {
+    UpdateMusicStream(music[current_song]);
+}
 
 void DG_DrawFrame() {
     // update texture with Doom Frame Buffer
@@ -168,6 +198,8 @@ void DG_DrawFrame() {
     DrawFPS(10, 10);
     EndDrawing();
 
+
+    //UpdateMusicStream(music);
     update_key_queue();
 }
 
@@ -186,6 +218,16 @@ int DG_GetKey(int *pressed, unsigned char *doomKey) {
     key_rindex %= KEYQUEUE_SIZE;
     *pressed = key >> 8 ? 1 : 0;
     *doomKey = key & 0xFF;
+    return 1;
+}
+
+int DG_MouseEvent(event_t *event) {
+    const float delta_x = GetMouseDelta().x;
+
+    event->type = ev_mouse;
+    event->data1 = 0;
+    event->data2 = DOOM_SENS * delta_x;
+    event->data3 = 0;
     return 1;
 }
 

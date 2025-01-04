@@ -641,6 +641,7 @@ void S_ChangeMusic(int musicnum, int looping)
 
     handle = I_RegisterSong(music->data, W_LumpLength(music->lumpnum));
     music->handle = handle;
+    DG_StartMusic(musicnum);
     I_PlaySong(handle, looping);
 
     mus_playing = music;

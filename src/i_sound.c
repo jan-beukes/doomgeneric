@@ -25,6 +25,7 @@
 #include "config.h"
 #include "doomfeatures.h"
 #include "doomtype.h"
+#include "doomgeneric.h"
 
 #ifdef ORIGCODE
 #include "gusconf.h"
@@ -224,6 +225,7 @@ int I_GetSfxLumpNum(sfxinfo_t *sfxinfo)
 
 void I_UpdateSound(void)
 {
+    DG_UpdateMusic();
     if (sound_module != NULL)
     {
         sound_module->Update();
@@ -316,7 +318,6 @@ void I_InitMusic(void)
 
 void I_ShutdownMusic(void)
 {
-
 }
 
 void I_SetMusicVolume(int volume)
@@ -373,6 +374,7 @@ void I_PlaySong(void *handle, boolean looping)
 
 void I_StopSong(void)
 {
+    DG_StopMusic();
     if (music_module != NULL)
     {
         music_module->StopSong();
