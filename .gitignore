@@ -8,3 +8,6 @@
 .vs/
 Debug/
 Release/
+doom
+.clangd
+wads

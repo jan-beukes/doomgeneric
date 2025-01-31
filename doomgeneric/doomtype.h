@@ -70,6 +70,12 @@ typedef bool boolean;
 
 #else
 
+#ifdef false
+#undef false
+#endif
+#ifdef true
+#undef true
+#endif
 typedef enum 
 {
     false	= 0,

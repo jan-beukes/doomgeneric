@@ -3,18 +3,22 @@
 #include "doomkeys.h"
 #include "m_argv.h"
 #include "doomgeneric.h"
+#include "ascii.h"
 
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include <stdbool.h>
 #include <SDL.h>
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
-SDL_Texture* texture;
+SDL_Surface* surface;
 
 #define KEYQUEUE_SIZE 16
+#define WIN_WIDTH 1280
+#define WIN_HEIGHT 800
 
 static unsigned short s_KeyQueue[KEYQUEUE_SIZE];
 static unsigned int s_KeyQueueWriteIndex = 0;
@@ -29,15 +33,23 @@ static unsigned char convertToDoomKey(unsigned int key){
     case SDLK_ESCAPE:
       key = KEY_ESCAPE;
       break;
+    case SDLK_A:
+      key = KEY_STRAFE_L;
+      break;
     case SDLK_LEFT:
       key = KEY_LEFTARROW;
+      break;
+    case SDLK_D:
+      key = KEY_STRAFE_R;
       break;
     case SDLK_RIGHT:
       key = KEY_RIGHTARROW;
       break;
+    case SDLK_W:
     case SDLK_UP:
       key = KEY_UPARROW;
       break;
+    case SDLK_S:
     case SDLK_DOWN:
       key = KEY_DOWNARROW;
       break;
@@ -113,52 +125,54 @@ static void addKeyToQueue(int pressed, unsigned int keyCode){
 static void handleKeyInput(){
   SDL_Event e;
   while (SDL_PollEvent(&e)){
-    if (e.type == SDL_QUIT){
+    if (e.type == SDL_EVENT_QUIT){
       puts("Quit requested");
       atexit(SDL_Quit);
       exit(1);
     }
-    if (e.type == SDL_KEYDOWN) {
+    if (e.type == SDL_EVENT_KEY_DOWN) {
       //KeySym sym = XKeycodeToKeysym(s_Display, e.xkey.keycode, 0);
       //printf("KeyPress:%d sym:%d\n", e.xkey.keycode, sym);
-      addKeyToQueue(1, e.key.keysym.sym);
-    } else if (e.type == SDL_KEYUP) {
+      addKeyToQueue(1, e.key.key);
+    } else if (e.type == SDL_EVENT_KEY_UP) {
       //KeySym sym = XKeycodeToKeysym(s_Display, e.xkey.keycode, 0);
       //printf("KeyRelease:%d sym:%d\n", e.xkey.keycode, sym);
-      addKeyToQueue(0, e.key.keysym.sym);
+      addKeyToQueue(0, e.key.key);
     }
   }
 }
 
+SDL_Surface *win_surf;
 
 void DG_Init(){
   window = SDL_CreateWindow("DOOM",
-                            SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED,
-                            DOOMGENERIC_RESX,
-                            DOOMGENERIC_RESY,
-                            SDL_WINDOW_SHOWN
-                            );
+                            WIN_WIDTH,
+                            WIN_HEIGHT, 0);
 
   // Setup renderer
-  renderer =  SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
+  renderer =  SDL_CreateRenderer( window, NULL);
   // Clear winow
   SDL_RenderClear( renderer );
   // Render the rect to the screen
   SDL_RenderPresent(renderer);
 
-  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, DOOMGENERIC_RESX, DOOMGENERIC_RESY);
+  surface = SDL_CreateSurface(DOOMGENERIC_RESX, DOOMGENERIC_RESY, SDL_PIXELFORMAT_XRGB8888);
+  ascii_init(renderer, 12.0f, NULL);
+  //win_surf = SDL_GetWindowSurface(window);
 }
 
+SDL_Surface *scaled_surf;
 void DG_DrawFrame()
 {
-  SDL_UpdateTexture(texture, NULL, DG_ScreenBuffer, DOOMGENERIC_RESX*sizeof(uint32_t));
+  surface->pixels = DG_ScreenBuffer;
+  scaled_surf = SDL_ScaleSurface(surface, 160, 100, SDL_SCALEMODE_NEAREST);
 
-  SDL_RenderClear(renderer);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_FRect dst = {0, 0, WIN_WIDTH, WIN_HEIGHT};
+  ascii_render(renderer, &dst, scaled_surf, 2);
   SDL_RenderPresent(renderer);
 
   handleKeyInput();
+  SDL_DestroySurface(scaled_surf);
 }
 
 void DG_SleepMs(uint32_t ms)
